@@ -6,7 +6,9 @@ import socket
 
 HOST = 'peirce.dave.cridland.net'
 SERVICE = 'imap'
-MECHANISM = 'DIGEST-MD5'
+# Set this to None, typically, for auto-select, or a SASL mechanism name, like:
+# MECHANISM = 'DIGEST-MD5'
+MECHANISM = None
 
 # Setup sasl object *now*...
 
@@ -28,6 +30,7 @@ def callback(mech, vals):
     mech.fulfill(vals)
     return
 
+# We'll authenticate as "test". The password is (or was, when I wrote this) "test".
 sasl = sasl.sasl(HOST, SERVICE, username='test', secquery=secquery, callback=callback, mech=MECHANISM)
 
 fd = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
