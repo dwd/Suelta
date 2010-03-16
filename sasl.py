@@ -70,9 +70,9 @@ class error:
 
 	def __str__( self ):
 		if self.mech is None:
-			return "SASL Error for " + str(self.sasl.uri) + ": " + self.txt
+			return "SASL Error for " + "something here" + ": " + self.txt
 		else:
-			return "SASL Error for " + str(self.sasl.uri) + ", mechanism " + self.mech.mechname + ": " + self.txt
+			return "SASL Error for " + "something here" + ", mechanism " + self.mech.mechname + ": " + self.txt
 
 class cancelled(error):
 	def __init__( self, sasl, mech=None ):
@@ -81,16 +81,16 @@ class cancelled(error):
 _answers = {}
 
 class sasl:
-	def __init__( self, uri, min=0, service=None, callback=None, secquery=None, tls_active=None, defrealm=None ):
-		self.defrealm = defrealm or uri.server
-		self.uri = uri
-		self.service = service or uri.scheme
-		self.host = uri.server
+	def __init__( self, host, service, mech=None, username=None, min=0, callback=None, secquery=None, tls_active=None, defrealm=None ):
+		self.defrealm = defrealm or host
+		self.service = service
+		self.host = host
 		self.stash_id = None
 		self.testkey = None
 		self.user = None
-		if self.uri.username is not None:
-			self.reset_stash_id( self.uri.username )
+		self.mech = mech
+		if username is not None:
+			self.reset_stash_id( username )
 		self.min = min - 1
 		self.cb = callback
 		self.try_username = self.user
@@ -114,11 +114,10 @@ class sasl:
 
 	def reset_stash_id( self, username ):
 		if have_saslprep:
-			username = infotrope.saslprep.saslprep( username )
+			username = saslprep.saslprep( username )
 		self.user = username
-		self.uri.username = username
 		self.try_username = self.user
-		self.stash_id = self.user + '\0' + self.host + '\0' + self.service + '\0' + str(self.uri.port)
+		self.stash_id = self.user + '\0' + self.host + '\0' + self.service
 		self.testkey = self.stash_id.split('\0')
 
 	def find_password( self, mech ):
@@ -162,22 +161,22 @@ class sasl:
 	def mechlist( self, mechs, force_plain=False ):
 		if force_plain:
 			return mech['PLAIN']( self, 'PLAIN' )
-		if self.uri.username is not None:
-			if self.uri.mechanism is None:
+		if self.user is not None:
+			if self.mech is None:
 				requested_mechanism = '*'
 			else:
-				requested_mechanism = self.uri.mechanism
+				requested_mechanism = self.mech
 		else:
-			if self.uri.mechanism is None:
+			if self.mech is None:
 				requested_mechanism = 'ANONYMOUS'
 			else:
-				requested_mechanism = self.uri.mechanism
-		if requested_mechanism == '*' and self.uri.username == 'anonymous':
+				requested_mechanism = self.mech
+		if requested_mechanism == '*' and self.user == 'anonymous':
 			requested_mechanism = 'ANONYMOUS'
 		if requested_mechanism != '*':
 			if requested_mechanism in mechs and requested_mechanism in mechmap: # Both ends have it.
 				return mech[requested_mechanism]( self, requested_mechanism )
-			if self.uri.mechanism=='VOODOO':
+			if self.mech == 'VOODOO':
 				if 'PLAIN' in mechs:
 					return mech['VOODOO']( self, 'PLAIN' )
 			return None
@@ -216,9 +215,6 @@ class sasl:
 
 		def encode_flush(self):
 			return ''
-			
-		def uri( self ):
-			return self.sasl.uri
 		
 		def process( self, chatter ):
 			raise "Pure virtual"
@@ -398,20 +394,17 @@ try:
 
 		def Hi(self, s, salt, iters):
 			ii = 1
-			print `salt`,`s`
 			p = s
 			try:
 				p = s.encode('utf-8')
 			except:
 				pass
 			ui_1 = self.HMAC(p, salt + '\0\0\0\01')
-			print `ui_1`
 			ui = ui_1
 			for i in range(iters - 1):
 				ii += 1
 				ui_1 = self.HMAC(p, ui_1)
 				ui = self.XOR(ui, ui_1)
-			print "\nHi(",`p`,`salt`,`iters`,")-->",iters, ii, "\n"
 			return ui
 		
 		def H(self, s):
@@ -451,7 +444,6 @@ try:
 				self.vals['SaltedPassword'] = self.Hi(self.vals['password'], self.salt, self.iter)
 			ClientKey = self.HMAC(self.vals['SaltedPassword'], "Client Key")
 			StoredKey = self.H(ClientKey)
-			print `self.soup`
 			ClientSignature = self.HMAC(StoredKey, self.soup)
 			ClientProof = self.XOR(ClientKey, ClientSignature)
 			r += ',p=' + self.base64(ClientProof)
@@ -496,7 +488,7 @@ class _anonymous(sasl.saslmech):
 		return {}
 
 	def process( self, chatter ):
-		return "Anonymous, Infotrope Python SASL"
+		return "Anonymous, Suelta"
 
 	def okay( self ):
 		return True
