@@ -1,0 +1,9 @@
+build/*
+docs/build/*
+*.swp
+*.bak
+*.swo
+*.pyc
+*.swn
+*~
+*__pycache__*

@@ -1,5 +1,10 @@
-import sasl
 import socket
+import base64
+
+import suelta
+
+# Make working with both Python 2.6+ and 3 easier
+from suelta.util import bytes
 
 # Walkthrough - and test - for Suelta.
 # We're going to make a piss-poor IMAP client.
@@ -13,35 +18,38 @@ MECHANISM = None
 # Setup sasl object *now*...
 
 # This gets called with questions.
-# Obviously, this is crap l11n, and needs fixing.
 def secquery(mech, question):
-    print "Answering yes to", question
+    print("Answering yes to: %s" % question)
     return True
 
 def callback(mech, vals):
-    print "Need user information for",mech.mechname,"login to",mech.sasl.service,"on",mech.sasl.host
+    print("Need user information for %s login to %s on %s" % (mech.name, mech.sasl.service, mech.sasl.host))
     import getpass
-    for x,v in vals.items():
+    for x, v in list(vals.items()):
         if x == 'password':
             vals[x] = getpass.getpass( 'Password: ' )
         else:
-            vals[x] = raw_input( x+': ' )
-    print "Fulfilling:",`vals`
+            vals[x] = input( x+': ' )
+
+    print("Fulfilling: %s" % vals)
     mech.fulfill(vals)
-    return
 
 # We'll authenticate as "test". The password is (or was, when I wrote this) "test".
-sasl = sasl.sasl(HOST, SERVICE, username='test', secquery=secquery, callback=callback, mech=MECHANISM)
+sasl = suelta.SASL(HOST, SERVICE,
+                   username='test',
+                   sec_query=secquery,
+                   request_values=callback,
+                   mech=MECHANISM)
 
 fd = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
 
 fd.connect((HOST, 143))
 
-f = fd.makefile()
+f = fd.makefile(mode='rw')
 
 # Read through the banner.
 # A real IMAP client would look for capabilities here.
-print `f.readline()`
+print(f.readline())
 
 # ... But we'll ask for them explicitly.
 f.write('. CAPABILITY\r\n')
@@ -53,17 +61,17 @@ caps = caps.strip()
 # Close to vomiting, now:
 caps = [ mech.split('=')[1] for mech in caps.split(' ') if mech.startswith('AUTH=') ]
 
-print `f.readline()`
+print(f.readline())
 
-print "Available mechs:", `caps`
+print("Available mechs: %s" % caps)
 
-mech = sasl.mechlist(caps)
+mech = sasl.choose_mechanism(caps)
 
-print "Going to use",`mech`,"-",mech.name()
+print("Going to use %s - %s" % (mech, mech.name))
 
 # If we do initial response, here, we could process an empty string to get it.
 # This *is* the case on IMAP with SASL-IR.
-f.write('. AUTHENTICATE %s\r\n' % mech.name())
+f.write('. AUTHENTICATE %s\r\n' % mech.name)
 f.flush()
 
 # Loop until we're done.
@@ -72,33 +80,38 @@ f.flush()
 
 while True:
     stuff = f.readline()
-    
-    print `stuff`
-    
+
+    print(stuff)
+
     if stuff[0] == '.':
         break
 
     if stuff[0] == '+':
-        gunk = stuff[2:].decode('base64')
-        print "Got:",`gunk`
+        gunk = base64.b64decode(bytes(stuff[2:]))
+        print("Got: %s" % gunk)
         my_gunk = mech.process(gunk)
-        print "Sending:",`my_gunk`
+        print("Sending: %s" % my_gunk)
+
         if my_gunk is None:
-            my_stuff = '+'
-        else: 
-            my_stuff = ''.join(my_gunk.encode('base64').split('\n'))
+            my_stuff = b'+'
+        else:
+            my_stuff =base64.b64encode(my_gunk).replace(b'\n', b'')
+
+        my_stuff += b'\r\n'
+        my_stuff = my_stuff.decode('utf-8')
+
         # Note the slightly hairy way you need to encode to avoid linebreaks.
-        f.write('%s\r\n' % (my_stuff))
+        f.write(my_stuff)
         f.flush()
 
 ok = stuff.split(' ')[1]
 
 if ok == 'OK':
-    print "Server says OK."
+    print("Server says OK.")
     if mech.okay():
-        print "Mechanism says OK."
+        print("Mechanism says OK.")
         ## Be happy.
     else:
-        print "Mutual auth failed: Disaster!"
+        print("Mutual auth failed: Disaster!")
 else:
-    print "Auth failed - wrong password?"
+    print("Auth failed - wrong password?")
