@@ -8,6 +8,16 @@ cases security layers.
 It supports a wide range of typical SASL mechanisms, including the
 Mandatory-To-Implement (MTI) mechanisms for all known protocols.
 
+----------------
+Getting the Code
+----------------
+
+This project is a Python3 compatible fork of Dave Cridland's (dwd_) original
+Suelta project.
+
+* Get the original at http://github.com/dwd/Suelta
+* The code documented here is available at http://github.com/legastero/Suelta
+
 -------------
 API Reference
 -------------
@@ -45,3 +55,6 @@ License
 .. topic:: Playing Nicely
 
     .. include:: ../../PLAYING-NICELY
+
+
+.. _dwd: http://github.com/dwd
