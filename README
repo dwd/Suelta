@@ -1,8 +1,10 @@
 Suelta - A pure-Python SASL client library
 
 Suelta is a SASL library, providing you with authentication and in some cases
-security layers.
+security layers. It was originally written by Dave Cridland, and represents the
+ripping asunder of the SASL bits of Polymer.
 
 It supports a wide range of typical SASL mechanisms, including the MTI for
 all known protocols.
 
+Now used in SleekXMPP, and Python 3-ized by Lance Stout.
