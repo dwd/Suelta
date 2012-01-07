@@ -34,3 +34,11 @@ SCRAM-HMAC
 ----------
 .. automodule:: suelta.mechanisms.scram_hmac
     :members:
+
+X-MESSENGER-OAUTH2
+------------------
+The ``X-MESSENGER-OAUTH2`` mechanism is used for XMPP authentication
+by the Windows Live Messenger.
+
+.. automodule:: suelta.mechanisms.messenger_oauth2
+    :members:
