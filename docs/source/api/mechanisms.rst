@@ -42,3 +42,13 @@ by the Windows Live Messenger.
 
 .. automodule:: suelta.mechanisms.messenger_oauth2
     :members:
+
+X-FACEBOOK-PLATFORM
+-------------------
+
+The ``X-FACEBOOK-PLATFORM`` mechanism is the preferred means of logging
+into Facebook via XMPP.
+
+.. automodule:: suelta.mechanisms.facebook_platform
+    :members:
+
